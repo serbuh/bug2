@@ -83,32 +83,40 @@ class bug2():
         self.goal_pos = goal_pos
         self.speed = speed
         self.client = client
+        self.state_time_counter = 0
 
     def run(self, lidar_relative_drone, lidar_world_frame, drone_position):
         points = np.array(lidar_relative_drone.points, dtype=np.dtype('f4'))
         #print(len(points), points)
-        print("distance to m-line: {:.2f}".format(self.distance_to_line(drone_position)))
+        dist_to_m_line = self.distance_to_line(drone_position)
+        print("distance to m-line: {:.2f}".format(dist_to_m_line))
         #self.client.flyToPosition(100, 200, self.goal_pos[2], self.speed)
         
-        if self.state == bug2_state.GO_TO_POINT:
+        if int(len(points)) > 1:
+            self.change_state(bug2_state.WALL_FOLLOW)
+            front = points[0]
+            side = points[1]
+            dist_to_obst = np.sqrt(front**2+side**2)
+            angle = np.arctan2(side,front)
+            print("Obst: dist {:.2f} angle {:.2f}".format(dist_to_obst, angle))
+        else:
+            dist_to_obst = 100 # no obstacles in sight
 
-            if int(len(points))>1 :
+        if self.state == bug2_state.GO_TO_POINT:
+            if dist_to_obst < 5:
                 self.change_state(bug2_state.WALL_FOLLOW)
-                front = points[0]
-                side = points[1]
-                dist = np.sqrt(front**2+side**2)
-                angle = np.arctan2(side,front)
-                print("Obst: dist {:.2f} angle {:.2f}".format(dist, angle))
-                
-                #bug2_state.GO_TO_POINT
-                # if front < 10 and abs(side) < 7:
+            
         elif self.state == bug2_state.WALL_FOLLOW:
-            pass
+            if self.state_time_counter > 5 and dist_to_m_line < 3: # TODO play with those params
+                self.change_state(bug2_state.GO_TO_POINT)
+        
+        self.state_time_counter += 1
 
     def change_state(self, new_state):
         if new_state != self.state:
             print("State: {} -> {}".format(self.state.name, new_state.name))
             self.state = new_state
+            self.state_time_counter = 0
             
     def distance_to_line(self, p0):
         # p0 is the current position

@@ -60,7 +60,7 @@ def lidar_points(lidar_relative_drone,rotation_matrix): # rotation * pos_relativ
         rdotp = rotation_matrix.dot(points)
         return rdotp
     else:
-        return "no obstacle detected"
+        return None # No obstacles detected
    
 
 
@@ -68,20 +68,20 @@ def get_lidar_world_frame(lidar_relative_drone,res ):
     rotation_matrix = rotation(res.orientation.x_rad,  res.orientation.y_rad, -res.orientation.z_rad)
     rdotp=lidar_points(lidar_relative_drone,rotation_matrix)
 
-    if rdotp != "no obstacle detected":
+    if rdotp is not None:
         lidar_world_frame    = np.array([res.pos.x_m, res.pos.y_m, res.pos.z_m])+rdotp
         return lidar_world_frame   
     else:
-        return "no obstacle detected"
+        return None # No obstacles detected
 
 
 
 class bug2():
-    def __init__(self, start_pos, goal_pos, speed, client):
-        self.state = bug2_state.GO_TO_POINT
-        self.start_pos = start_pos
-        self.goal_pos = goal_pos
-        self.speed = speed
+    def __init__(self, config, client):
+        self.state = bug2_state.GO_TO_POINT # initial state
+        self.start_pos = config.start_pos
+        self.goal_pos = config.goal_pos
+        self.speed = config.speed
         self.client = client
         self.state_time_counter = 0
 
@@ -89,7 +89,7 @@ class bug2():
         points = np.array(lidar_relative_drone.points, dtype=np.dtype('f4'))
         #print(len(points), points)
         dist_to_m_line = self.distance_to_line(drone_position)
-        print("distance to m-line: {:.2f}".format(dist_to_m_line))
+        #print("distance to m-line: {:.2f}".format(dist_to_m_line))
         #self.client.flyToPosition(100, 200, self.goal_pos[2], self.speed)
         
         if int(len(points)) > 1:
@@ -98,15 +98,17 @@ class bug2():
             side = points[1]
             dist_to_obst = np.sqrt(front**2+side**2)
             angle = np.arctan2(side,front)
-            print("Obst: dist {:.2f} angle {:.2f}".format(dist_to_obst, angle))
+            print("Obst: dist {:.2f} angle {:.2f}".format(dist_to_obst, np.degrees(angle)))
         else:
             dist_to_obst = 100 # no obstacles in sight
 
         if self.state == bug2_state.GO_TO_POINT:
+            self.client.flyToPosition(self.goal_pos[0], self.goal_pos[1], self.goal_pos[2], self.speed)
             if dist_to_obst < 5:
                 self.change_state(bug2_state.WALL_FOLLOW)
             
         elif self.state == bug2_state.WALL_FOLLOW:
+            self.client.flyToPosition(self.start_pos[0], self.start_pos[1], self.start_pos[2], self.speed)
             if self.state_time_counter > 5 and dist_to_m_line < 3: # TODO play with those params
                 self.change_state(bug2_state.GO_TO_POINT)
         
@@ -129,6 +131,7 @@ class bug2():
         distance = up_eq / lo_eq
 
         return distance
+
 
 class bug2_state(Enum):
     GO_TO_POINT = 0

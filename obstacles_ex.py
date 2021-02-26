@@ -86,6 +86,7 @@ class bug2():
         self.client = client
         self.state_time_counter = 0
         self.obstacles = ObstaclesDirections(config)
+        self.desired_azimuth = self.calc_azimuth_from_two_points(self.start_pos, self.goal_pos) # Drone Navigation will use this
         
 
     def run_iteration(self, lidar_relative_drone, lidar_world_frame, drone_position, drone_azimuth):
@@ -109,12 +110,20 @@ class bug2():
         if self.state == bug2_state.GO_TO_POINT:
             if (self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.IN_RANGE 
                 or self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.NEAR):
+                    # Change state
                     self.change_state(bug2_state.WALL_FOLLOW)
-            self.client.flyToPosition(self.goal_pos[0], self.goal_pos[1], self.goal_pos[2], self.speed)
+            else:
+                # Continue going to the point
+                self.client.flyToPosition(self.goal_pos[0], self.goal_pos[1], self.goal_pos[2], self.speed)
                 
             
         elif self.state == bug2_state.WALL_FOLLOW:
-            self.client.flyToPosition(self.start_pos[0], self.start_pos[1], self.start_pos[2], 0)
+            new_azimuth = self.azimuth - 90
+            if (self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.IN_RANGE 
+                or self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.NEAR):
+
+                self.client.flyToPosition(self.start_pos[0], self.start_pos[1], self.start_pos[2], 0)
+            
             if self.state_time_counter > 5 and dist_to_m_line < 3: # TODO play with those params
                 self.change_state(bug2_state.GO_TO_POINT)
         
@@ -137,6 +146,13 @@ class bug2():
         distance = up_eq / lo_eq
 
         return distance
+    
+    def calc_azimuth_from_two_points(self, p0, p1):
+        p1 = Point(self.start_pos)
+        p2 = Point(self.goal_pos)
+    
+    def calc_desired_goal_pos_from_azimuth(self, self_loc, azimuth):
+        pass
 
 class ObstaclesDirections():
     ''' Handles the range report for all the sectors (FRONT\LEFT\etc.) '''

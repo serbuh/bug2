@@ -121,7 +121,7 @@ class bug2():
             if (self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.IN_RANGE 
                 or self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.NEAR):
 
-                curr_goal_pos = self.calc_desired_goal_pos_from_azimuth(drone_position, self.desired_azimuth)
+                curr_goal_pos = self.calc_desired_wp_from_azimuth(drone_position, self.desired_azimuth)
                 print("fly to: {}".format(curr_goal_pos))
                 self.client.flyToPosition(curr_goal_pos[0], curr_goal_pos[1], curr_goal_pos[2], self.speed)
             
@@ -149,9 +149,10 @@ class bug2():
         return distance
     
     def calc_azimuth_from_two_points(self, p0, p1):
+        # TODO implement this
         p1 = Point(self.start_pos)
         p2 = Point(self.goal_pos)
-            
+        
         dY = (p2.y - p1.y)
         x = math.cos(math.radians(p2.x)) * math.sin(math.radians(dY))
         y = math.cos(math.radians(p1.x)) * math.sin(math.radians(p2.x)) - math.sin(math.radians(p1.x)) * math.cos(math.radians(p2.x)) * math.cos(math.radians(dY))
@@ -159,7 +160,15 @@ class bug2():
         
         return azimuth
     
-    def calc_desired_goal_pos_from_azimuth(self, self_loc, azimuth):
+    def calc_desired_wp_from_azimuth(self, self_loc, azimuth):
+        ''' Create new way point that is _ meters away of the self_loc at the direction of azimuth'''
+        # TODO implement this
+
+        # inputs:
+        #self_loc.x
+        #self_loc.y
+        #azimuth
+        
         x = -367
         y = -1282
         return (x, y, self.goal_pos[2])

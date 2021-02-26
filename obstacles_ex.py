@@ -9,6 +9,7 @@ import pandas
 import matplotlib.pyplot as plt
 from enum import Enum
 import math
+import json
 
 
 def ccw_sort(p):
@@ -84,8 +85,10 @@ class bug2():
         self.speed = config.speed
         self.client = client
         self.state_time_counter = 0
+        self.obstacles = ObstaclesDirections(config)
+        
 
-    def run(self, lidar_relative_drone, lidar_world_frame, drone_position):
+    def run_iteration(self, lidar_relative_drone, lidar_world_frame, drone_position):
         points = np.array(lidar_relative_drone.points, dtype=np.dtype('f4'))
         #print(len(points), points)
         dist_to_m_line = self.distance_to_line(drone_position)
@@ -98,9 +101,12 @@ class bug2():
             side = points[1]
             dist_to_obst = np.sqrt(front**2+side**2)
             angle = np.arctan2(side,front)
-            print("Obst: dist {:.2f} angle {:.2f}".format(dist_to_obst, np.degrees(angle)))
+            self.obstacles.update_description(np.degrees(angle), dist_to_obst)
+            
         else:
-            dist_to_obst = 100 # no obstacles in sight
+            dist_to_obst = 100 # no obstacles in sight # TODO remove
+
+        self.obstacles.print_state()
 
         if self.state == bug2_state.GO_TO_POINT:
             self.client.flyToPosition(self.goal_pos[0], self.goal_pos[1], self.goal_pos[2], self.speed)
@@ -108,7 +114,7 @@ class bug2():
                 self.change_state(bug2_state.WALL_FOLLOW)
             
         elif self.state == bug2_state.WALL_FOLLOW:
-            self.client.flyToPosition(self.start_pos[0], self.start_pos[1], self.start_pos[2], self.speed)
+            self.client.flyToPosition(self.start_pos[0], self.start_pos[1], self.start_pos[2], 0)
             if self.state_time_counter > 5 and dist_to_m_line < 3: # TODO play with those params
                 self.change_state(bug2_state.GO_TO_POINT)
         
@@ -132,10 +138,93 @@ class bug2():
 
         return distance
 
+class ObstaclesDirections():
+    ''' Handles the range report for all the sectors (FRONT\LEFT\etc.) '''
+    def __init__(self, config):
+        self.config = config
+        
+        # Initialize obstacle descriptors for each sector with timed out detection times  
+        self.sectors = {obst_direction.LEFT:  ObstacleDescriptor(config),
+                        obst_direction.FRONT: ObstacleDescriptor(config),
+                        obst_direction.RIGHT: ObstacleDescriptor(config)}
+    
+    def update_description(self, angle, distance):
+        self.sectors[self.angle_to_direction(angle)].update_description(time.time(), distance)
+
+    def angle_to_direction(self, angle):
+        if angle < self.config.left_border:
+            return obst_direction.LEFT
+        elif angle < self.config.right_border:
+            return obst_direction.FRONT
+        else:
+            return obst_direction.RIGHT
+
+    def print_state(self):
+        left_range  = self.sectors[obst_direction.LEFT].get_range_as_string()
+        front_range = self.sectors[obst_direction.FRONT].get_range_as_string()
+        right_range = self.sectors[obst_direction.RIGHT].get_range_as_string()
+        
+        status_msg = "[{}|{}|{}]".format(left_range,front_range,right_range)
+        print(status_msg)
+        # Send status over UDP
+        if self.config.send_to_gui:
+            msg = str.encode(json.dumps(status_msg))
+            self.config.udp_send_sock.sendto(msg, self.config.udp_addr)
+    
+class ObstacleDescriptor():
+    ''' Handles the range report for one sector (FRONT\LEFT\etc.) '''
+    def __init__(self, config):
+        self.config = config
+        self.last_detection_time = time.time()-2*config.obst_timeout
+        self.range = obst_range.NOT_IN_RANGE # init as a timed out obstacle
+
+    def update_description(self, last_detection_time, distance):
+        self.last_detection_time = last_detection_time
+        self.range = self.distance_to_range(distance)
+    
+    def distance_to_range(self, distance):
+        if distance < self.config.close_range_thr:
+            return obst_range.NEAR
+        elif distance < self.config.in_range_thr:
+            return obst_range.IN_RANGE
+        else:
+            return obst_range.FAR
+
+    def get_range(self):
+        # Check if obstacle is not timed out
+        if time.time() - self.last_detection_time > self.config.obst_timeout:
+            self.range = obst_range.NOT_IN_RANGE
+
+        return self.range
+    
+    def get_range_as_string(self):
+        range = self.get_range()
+        if range == obst_range.NEAR:
+            return "#####"
+        elif range == obst_range.IN_RANGE:
+            return " ### "
+        elif range == obst_range.FAR:
+            return "  #  "
+        elif range == obst_range.NOT_IN_RANGE:
+            return "     "
+        else:
+            return "?WTF?"
 
 class bug2_state(Enum):
     GO_TO_POINT = 0
     WALL_FOLLOW = 1
+
+class obst_direction(Enum):
+    LEFT = 0
+    FRONT = 1
+    RIGHT = 2
+
+class obst_range(Enum):
+    NEAR = 0
+    IN_RANGE = 1
+    FAR = 2
+    NOT_IN_RANGE = 3 # Timed out
+
 
 
         

@@ -97,22 +97,21 @@ class bug2():
         #self.client.flyToPosition(100, 200, self.goal_pos[2], self.speed)
         
         if int(len(points)) > 1:
-            self.change_state(bug2_state.WALL_FOLLOW)
+            # Obstacle detected
             front = points[0]
             side = points[1]
             dist_to_obst = np.sqrt(front**2+side**2)
             angle = np.arctan2(side,front)
             self.obstacles.update_description(np.degrees(angle), dist_to_obst)
             
-        else:
-            dist_to_obst = 100 # no obstacles in sight # TODO remove
-
         self.obstacles.print_state(self.drone_azimuth)
 
         if self.state == bug2_state.GO_TO_POINT:
+            if (self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.IN_RANGE 
+                or self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.NEAR):
+                    self.change_state(bug2_state.WALL_FOLLOW)
             self.client.flyToPosition(self.goal_pos[0], self.goal_pos[1], self.goal_pos[2], self.speed)
-            if dist_to_obst < 5:
-                self.change_state(bug2_state.WALL_FOLLOW)
+                
             
         elif self.state == bug2_state.WALL_FOLLOW:
             self.client.flyToPosition(self.start_pos[0], self.start_pos[1], self.start_pos[2], 0)

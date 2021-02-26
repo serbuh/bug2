@@ -95,7 +95,6 @@ class bug2():
         #print(len(points), points)
         dist_to_m_line = self.distance_to_line(drone_position)
         #print("distance to m-line: {:.2f}".format(dist_to_m_line))
-        #self.client.flyToPosition(100, 200, self.goal_pos[2], self.speed)
         
         if int(len(points)) > 1:
             # Obstacle detected
@@ -114,6 +113,7 @@ class bug2():
                     self.change_state(bug2_state.WALL_FOLLOW)
             else:
                 # Continue going to the point
+                print("fly to: {}".format(self.goal_pos))
                 self.client.flyToPosition(self.goal_pos[0], self.goal_pos[1], self.goal_pos[2], self.speed)
                 
             
@@ -121,10 +121,12 @@ class bug2():
             if (self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.IN_RANGE 
                 or self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.NEAR):
 
-                self.client.flyToPosition(self.start_pos[0], self.start_pos[1], self.start_pos[2], 0)
+                curr_goal_pos = self.calc_desired_goal_pos_from_azimuth(drone_position, self.desired_azimuth)
+                print("fly to: {}".format(curr_goal_pos))
+                self.client.flyToPosition(curr_goal_pos[0], curr_goal_pos[1], curr_goal_pos[2], self.speed)
             
-            if self.state_time_counter > 5 and dist_to_m_line < 3: # TODO play with those params
-                self.change_state(bug2_state.GO_TO_POINT)
+            #if self.state_time_counter > 100 and dist_to_m_line < 3: # TODO play with those params
+            #    self.change_state(bug2_state.GO_TO_POINT)
         
         self.state_time_counter += 1
 
@@ -158,7 +160,9 @@ class bug2():
         return azimuth
     
     def calc_desired_goal_pos_from_azimuth(self, self_loc, azimuth):
-        pass
+        x = -367
+        y = -1282
+        return (x, y, self.goal_pos[2])
 
 class ObstaclesDirections():
     ''' Handles the range report for all the sectors (FRONT\LEFT\etc.) '''

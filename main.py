@@ -42,7 +42,7 @@ if __name__ == "__main__":
         
         drone_pose = client.getPose()
         drone_position = Point(drone_pose.pos.x_m, drone_pose.pos.y_m, drone_pose.pos.z_m)
-        drone_azimuth = math.degrees(drone_pose.orientation.y_rad)
+        drone_azimuth = math.degrees(drone_pose.orientation.z_rad)
         lidar_relative_drone = client.getLidarData()
         lidar_world_frame = obstacles_ex.get_lidar_world_frame(lidar_relative_drone, drone_pose)
         if lidar_world_frame is None:

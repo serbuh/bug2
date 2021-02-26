@@ -60,7 +60,7 @@ class MainWindow():
         self.status_text = tk.StringVar()                 # Create new StringVar
         self.status_text.set("waiting for status update") # Update the StringVar (label's) text
         # Create the lable itself and assign a text
-        self.label = tk.Label(master = self.master, textvariable = self.status_text, anchor = "w")
+        self.label = tk.Label(master = self.master, textvariable = self.status_text, font = "Times 20", anchor = "w")
         self.label.grid(row=2, column=0, sticky="W")
 
         self.master.after(10, self.get_new_status_msg)

@@ -11,6 +11,7 @@ from plotter2 import plotter
 from config import Config
 import socket
 import json
+import math
 
 if __name__ == "__main__":
     config = Config() # load config
@@ -39,15 +40,16 @@ if __name__ == "__main__":
     while True:
         #plotter1.set_axes_limit()
         
-        res = client.getPose()
-        drone_position = Point(res.pos.x_m, res.pos.y_m, res.pos.z_m)
+        drone_pose = client.getPose()
+        drone_position = Point(drone_pose.pos.x_m, drone_pose.pos.y_m, drone_pose.pos.z_m)
+        drone_azimuth = math.degrees(drone_pose.orientation.y_rad)
         lidar_relative_drone = client.getLidarData()
-        lidar_world_frame = obstacles_ex.get_lidar_world_frame(lidar_relative_drone,res)
+        lidar_world_frame = obstacles_ex.get_lidar_world_frame(lidar_relative_drone, drone_pose)
         if lidar_world_frame is None:
             lidar_world_frame = np.array([0,0,0])
-        #plotter1.plot_drone_and_lidar_pos(res=res, lidar_world_frame=lidar_world_frame)
+        #plotter1.plot_drone_and_lidar_pos(drone_pose=drone_pose, lidar_world_frame=lidar_world_frame)
 
-        bug2.run_iteration(lidar_relative_drone, lidar_world_frame, drone_position)
+        bug2.run_iteration(lidar_relative_drone, lidar_world_frame, drone_position, drone_azimuth)
        
 
 

@@ -88,7 +88,8 @@ class bug2():
         self.obstacles = ObstaclesDirections(config)
         
 
-    def run_iteration(self, lidar_relative_drone, lidar_world_frame, drone_position):
+    def run_iteration(self, lidar_relative_drone, lidar_world_frame, drone_position, drone_azimuth):
+        self.drone_azimuth = drone_azimuth
         points = np.array(lidar_relative_drone.points, dtype=np.dtype('f4'))
         #print(len(points), points)
         dist_to_m_line = self.distance_to_line(drone_position)
@@ -106,7 +107,7 @@ class bug2():
         else:
             dist_to_obst = 100 # no obstacles in sight # TODO remove
 
-        self.obstacles.print_state()
+        self.obstacles.print_state(self.drone_azimuth)
 
         if self.state == bug2_state.GO_TO_POINT:
             self.client.flyToPosition(self.goal_pos[0], self.goal_pos[1], self.goal_pos[2], self.speed)
@@ -160,12 +161,12 @@ class ObstaclesDirections():
         else:
             return obst_direction.RIGHT
 
-    def print_state(self):
+    def print_state(self, drone_azimuth):
         left_range  = self.sectors[obst_direction.LEFT].get_range_as_string()
         front_range = self.sectors[obst_direction.FRONT].get_range_as_string()
         right_range = self.sectors[obst_direction.RIGHT].get_range_as_string()
         
-        status_msg = "[{}|{}|{}]".format(left_range,front_range,right_range)
+        status_msg = "[{}|{}|{}] az {:.1f}".format(left_range, front_range, right_range, drone_azimuth)
         #print(status_msg)
         # Send status over UDP
         if self.config.send_to_gui and self.not_sent_statuses >= self.config.status_send_cycle:

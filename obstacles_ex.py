@@ -87,10 +87,14 @@ class bug2():
         self.state_time_counter = 0
         self.obstacles = ObstaclesDirections(config)
         self.desired_azimuth = self.calc_azimuth_from_two_points(self.start_pos, self.goal_pos) # Drone Navigation will use this
+        self.drone_position = None # holds real drone position
+        self.drone_azimuth = None # holds real drone azimuth
+
         
 
     def run_iteration(self, lidar_relative_drone, lidar_world_frame, drone_position, drone_azimuth):
         self.drone_azimuth = drone_azimuth
+        self.drone_position = drone_position
         points = np.array(lidar_relative_drone.points, dtype=np.dtype('f4'))
         #print(len(points), points)
         dist_to_m_line = self.distance_to_line(drone_position)
@@ -104,30 +108,35 @@ class bug2():
             angle = np.arctan2(side,front)
             self.obstacles.update_description(np.degrees(angle), dist_to_obst)
             
-        self.obstacles.print_state(self.drone_azimuth, self.desired_azimuth)
+        
 
         if self.state == bug2_state.GO_TO_POINT:
             if (self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.IN_RANGE 
                 or self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.NEAR):
                     # Change state
-                    self.change_state(bug2_state.WALL_FOLLOW)
+                    self.change_state(bug2_state.WALL_FOLLOW_SET_COURSE)
             else:
                 # Continue going to the point
-                print("fly to: {}".format(self.goal_pos))
-                self.client.flyToPosition(self.goal_pos[0], self.goal_pos[1], self.goal_pos[2], self.speed)
+                self.desired_azimuth = self.calc_azimuth_from_two_points(self.drone_position, self.goal_pos)
+                #print("Drone: {} Goal {} az {}".format(self.drone_position, self.goal_pos, self.desired_azimuth))
+                self.correct_desired_azimuth_and_fly(0)
                 
             
-        elif self.state == bug2_state.WALL_FOLLOW:
+        elif self.state == bug2_state.WALL_FOLLOW_SET_COURSE:
             if (self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.IN_RANGE 
-                or self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.NEAR):
+                or self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.NEAR): # TODO play with the sector conditions
                 
-                curr_goal_pos = self.calc_desired_wp_from_azimuth(drone_position, self.desired_azimuth)
-                print("fly to: {}".format(curr_goal_pos))
-                self.client.flyToPosition(curr_goal_pos[0], curr_goal_pos[1], curr_goal_pos[2], self.speed)
-            
+                self.correct_desired_azimuth_and_fly(-90)
+                self.change_state(bug2_state.WALL_FOLLOW_HOLD_RANGE)
+        
+        elif self.state == bug2_state.WALL_FOLLOW_HOLD_RANGE:
+            self.correct_desired_azimuth_and_fly(0) # Stay on course
+
             #if self.state_time_counter > 100 and dist_to_m_line < 3: # TODO play with those params
             #    self.change_state(bug2_state.GO_TO_POINT)
         
+        self.obstacles.print_state(self.drone_azimuth, self.desired_azimuth)
+
         self.state_time_counter += 1
 
     def change_state(self, new_state):
@@ -135,7 +144,16 @@ class bug2():
             print("State: {} -> {}".format(self.state.name, new_state.name))
             self.state = new_state
             self.state_time_counter = 0
-            
+    
+    def correct_desired_azimuth_and_fly(self, delta_deg):
+        self.desired_azimuth += delta_deg
+        self.desired_azimuth = (self.desired_azimuth + 360) % 360 # keep azimuth in range (0,360)
+        #print("desired az {:.2f}".format(self.desired_azimuth))
+        curr_goal_pos = self.calc_desired_wp_from_azimuth(self.drone_position, self.desired_azimuth)
+
+        #print("fly to: {} {} {}".format(curr_goal_pos.x, curr_goal_pos.y, curr_goal_pos.z))
+        self.client.flyToPosition(curr_goal_pos.x, curr_goal_pos.y, curr_goal_pos.z, self.speed)
+
     def distance_to_line(self, p0):
         # p0 is the current position
         # p1 and p2 points define the line
@@ -149,16 +167,8 @@ class bug2():
         return distance
     
     def calc_azimuth_from_two_points(self, p0, p1):
-        # TODO implement this
-        p1 = Point(self.start_pos)
-        p2 = Point(self.goal_pos)
-        
-        dY = (p2.y - p1.y)
-        x = math.cos(math.radians(p2.x)) * math.sin(math.radians(dY))
-        y = math.cos(math.radians(p1.x)) * math.sin(math.radians(p2.x)) - math.sin(math.radians(p1.x)) * math.cos(math.radians(p2.x)) * math.cos(math.radians(dY))
-        azimuth = math.degrees(np.arctan2(x,y))
-        
-        return azimuth
+        azimuth_rad = math.atan2(p1.y-p0.y, p1.x-p0.x)
+        return (math.degrees(azimuth_rad) + 360 ) % 360
     
     def calc_desired_wp_from_azimuth(self, self_loc, azimuth):
         ''' Create new way point that is _ meters away of the self_loc at the direction of azimuth'''
@@ -166,7 +176,7 @@ class bug2():
         
         x = self_loc.x + d * math.cos(math.radians(azimuth))
         y = self_loc.y + d * math.sin(math.radians(azimuth))
-        return (x, y, self.goal_pos[2])
+        return Point(x, y, self.goal_pos.z)
 
 class ObstaclesDirections():
     ''' Handles the range report for all the sectors (FRONT\LEFT\etc.) '''
@@ -245,7 +255,10 @@ class ObstacleDescriptor():
 
 class bug2_state(Enum):
     GO_TO_POINT = 0
-    WALL_FOLLOW = 1
+    WALL_FOLLOW_SET_COURSE = 1
+    WALL_FOLLOW_HOLD_RANGE = 2
+    WALL_FOLLOW_REDUCE_RANGE = 3
+    WALL_FOLLOW_INCREASE_RANGE = 4
 
 class obst_direction(Enum):
     LEFT = 0

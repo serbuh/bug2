@@ -105,7 +105,7 @@ class bug2():
             angle = np.arctan2(side,front)
             self.obstacles.update_description(np.degrees(angle), dist_to_obst)
             
-        self.obstacles.print_state(self.drone_azimuth)
+        self.obstacles.print_state(self.drone_azimuth, self.desired_azimuth)
 
         if self.state == bug2_state.GO_TO_POINT:
             if (self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.IN_RANGE 
@@ -118,7 +118,6 @@ class bug2():
                 
             
         elif self.state == bug2_state.WALL_FOLLOW:
-            new_azimuth = self.azimuth - 90
             if (self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.IN_RANGE 
                 or self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.NEAR):
 
@@ -150,6 +149,13 @@ class bug2():
     def calc_azimuth_from_two_points(self, p0, p1):
         p1 = Point(self.start_pos)
         p2 = Point(self.goal_pos)
+            
+        dY = (p2.y - p1.y)
+        x = math.cos(math.radians(p2.x)) * math.sin(math.radians(dY))
+        y = math.cos(math.radians(p1.x)) * math.sin(math.radians(p2.x)) - math.sin(math.radians(p1.x)) * math.cos(math.radians(p2.x)) * math.cos(math.radians(dY))
+        azimuth = math.degrees(np.arctan2(x,y))
+        
+        return azimuth
     
     def calc_desired_goal_pos_from_azimuth(self, self_loc, azimuth):
         pass
@@ -176,12 +182,12 @@ class ObstaclesDirections():
         else:
             return obst_direction.RIGHT
 
-    def print_state(self, drone_azimuth):
+    def print_state(self, drone_azimuth, desired_azimuth):
         left_range  = self.sectors[obst_direction.LEFT].get_range_as_string()
         front_range = self.sectors[obst_direction.FRONT].get_range_as_string()
         right_range = self.sectors[obst_direction.RIGHT].get_range_as_string()
         
-        status_msg = "[{}|{}|{}] az {:.1f}".format(left_range, front_range, right_range, drone_azimuth)
+        status_msg = "[{}|{}|{}] az {:.1f} d_az {:.1f}".format(left_range, front_range, right_range, drone_azimuth, desired_azimuth)
         #print(status_msg)
         # Send status over UDP
         if self.config.send_to_gui and self.not_sent_statuses >= self.config.status_send_cycle:

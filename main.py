@@ -25,7 +25,7 @@ if __name__ == "__main__":
     time.sleep(4)
     client.setAtPosition(config.start_pos[0], config.start_pos[1], config.start_pos[2])
 
-    #plotter1 = plotter()
+    plotter1 = plotter()
     
     pandas.read_csv("obstacles_100m_above_sea_level.csv").to_numpy()
 
@@ -33,12 +33,12 @@ if __name__ == "__main__":
     m_line= LineString([(config.start_pos[0], config.start_pos[1]), (config.goal_pos[0], config.goal_pos[1])])
     
 
-    #plotter1.plot_static(obstacles=obstacles,m_line = m_line)
+    plotter1.plot_static(obstacles=obstacles,m_line = m_line)
     print("Init bug2")
     bug2 = obstacles_ex.bug2(config, client)    
     print("Lets fly!")
     while True:
-        #plotter1.set_axes_limit()
+        plotter1.set_axes_limit()
         
         drone_pose = client.getPose()
         drone_position = Point(drone_pose.pos.x_m, drone_pose.pos.y_m, drone_pose.pos.z_m)
@@ -47,7 +47,7 @@ if __name__ == "__main__":
         lidar_world_frame = obstacles_ex.get_lidar_world_frame(lidar_relative_drone, drone_pose)
         if lidar_world_frame is None:
             lidar_world_frame = np.array([0,0,0])
-        #plotter1.plot_drone_and_lidar_pos(drone_pose=drone_pose, lidar_world_frame=lidar_world_frame)
+        plotter1.plot_drone_and_lidar_pos(drone_pose=drone_pose, lidar_world_frame=lidar_world_frame)
 
         bug2.run_iteration(lidar_relative_drone, lidar_world_frame, drone_position, drone_azimuth)
        

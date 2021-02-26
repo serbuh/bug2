@@ -120,7 +120,7 @@ class bug2():
         elif self.state == bug2_state.WALL_FOLLOW:
             if (self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.IN_RANGE 
                 or self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.NEAR):
-
+                
                 curr_goal_pos = self.calc_desired_wp_from_azimuth(drone_position, self.desired_azimuth)
                 print("fly to: {}".format(curr_goal_pos))
                 self.client.flyToPosition(curr_goal_pos[0], curr_goal_pos[1], curr_goal_pos[2], self.speed)
@@ -162,15 +162,10 @@ class bug2():
     
     def calc_desired_wp_from_azimuth(self, self_loc, azimuth):
         ''' Create new way point that is _ meters away of the self_loc at the direction of azimuth'''
-        # TODO implement this
-
-        # inputs:
-        #self_loc.x
-        #self_loc.y
-        #azimuth
+        d = 20 # distance of the waypoint
         
-        x = -367
-        y = -1282
+        x = self_loc.x + d * math.cos(math.radians(azimuth))
+        y = self_loc.y + d * math.sin(math.radians(azimuth))
         return (x, y, self.goal_pos[2])
 
 class ObstaclesDirections():

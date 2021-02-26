@@ -24,7 +24,7 @@ if __name__ == "__main__":
     time.sleep(4)
     client.setAtPosition(config.start_pos[0], config.start_pos[1], config.start_pos[2])
 
-    plotter1 = plotter()
+    #plotter1 = plotter()
     
     pandas.read_csv("obstacles_100m_above_sea_level.csv").to_numpy()
 
@@ -32,12 +32,12 @@ if __name__ == "__main__":
     m_line= LineString([(config.start_pos[0], config.start_pos[1]), (config.goal_pos[0], config.goal_pos[1])])
     
 
-    plotter1.plot_static(obstacles=obstacles,m_line = m_line)
+    #plotter1.plot_static(obstacles=obstacles,m_line = m_line)
     print("Init bug2")
     bug2 = obstacles_ex.bug2(config, client)    
     print("Lets fly!")
     while True:
-        plotter1.set_axes_limit()
+        #plotter1.set_axes_limit()
         
         res = client.getPose()
         drone_position = Point(res.pos.x_m, res.pos.y_m, res.pos.z_m)

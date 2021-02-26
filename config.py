@@ -4,7 +4,7 @@ class Config():
     def __init__(self):
         print("Start configuration")
         # UDP connection
-        self.send_to_gui = False
+        self.send_to_gui = True
         self.udp_addr = ("127.0.0.1", 5077)
         try:
             if self.send_to_gui:
@@ -16,6 +16,8 @@ class Config():
         except:
             print("Error during socket creation")
         
+        self.status_send_cycle = 30 # Send status message every <status_send_cycle> time 
+
         self.left_border = -30
         self.right_border = 30
         

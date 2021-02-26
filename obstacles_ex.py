@@ -142,6 +142,7 @@ class ObstaclesDirections():
     ''' Handles the range report for all the sectors (FRONT\LEFT\etc.) '''
     def __init__(self, config):
         self.config = config
+        self.not_sent_statuses = 0
         
         # Initialize obstacle descriptors for each sector with timed out detection times  
         self.sectors = {obst_direction.LEFT:  ObstacleDescriptor(config),
@@ -165,11 +166,13 @@ class ObstaclesDirections():
         right_range = self.sectors[obst_direction.RIGHT].get_range_as_string()
         
         status_msg = "[{}|{}|{}]".format(left_range,front_range,right_range)
-        print(status_msg)
+        #print(status_msg)
         # Send status over UDP
-        if self.config.send_to_gui:
+        if self.config.send_to_gui and self.not_sent_statuses >= self.config.status_send_cycle:
+            self.not_sent_statuses = 0
             msg = str.encode(json.dumps(status_msg))
             self.config.udp_send_sock.sendto(msg, self.config.udp_addr)
+        self.not_sent_statuses += 1
     
 class ObstacleDescriptor():
     ''' Handles the range report for one sector (FRONT\LEFT\etc.) '''

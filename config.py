@@ -35,8 +35,8 @@ class Config():
         self.speed = 5
 
         self.obst_timeout = 3      # [Sec] Timeout for the obstacle detection
-        self.close_range_thr = 3   # [Meters] Less than this thr => obstacle is NEAR. More than thr => obstacle is IN_RANGE
-        self.in_range_thr = 10     # More than thr => obstacle is FAR
+        self.close_range_thr = 6   # [Meters] Less than this thr => obstacle is NEAR. More than thr => obstacle is IN_RANGE
+        self.in_range_thr = 12     # [Meters] More than thr => obstacle is FAR
 
         self.correction_period = 1 # [Sec] Allow correcting course every <var> seconds while wall following
         self.correction_obst_meet = -90 # [Deg] turn <var> degrees when encountering obstacle in range in go to mode

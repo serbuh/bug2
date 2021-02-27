@@ -35,7 +35,7 @@ if __name__ == "__main__":
 
     #plotter1.plot_static(obstacles=obstacles,m_line = m_line)
     print("Init bug2")
-    bug2 = obstacles_ex.bug2(config, client)    
+    bug2 = obstacles_ex.bug2(config, client)
     print("Lets fly!")
     while True:
         #plotter1.set_axes_limit()

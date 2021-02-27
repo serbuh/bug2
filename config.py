@@ -35,6 +35,7 @@ class Config():
         self.speed = 5
 
         self.obst_timeout = 1      # [Sec] Timeout for the obstacle detection
+        self.not_in_range_timeout = 1.5 # [Sec] If after this <var> seconds there is no obst. detection => report not_in_range
         self.close_range_thr = 6   # [Meters] Less than this thr => obstacle is NEAR. More than thr => obstacle is IN_RANGE
         self.in_range_thr = 12     # [Meters] More than thr => obstacle is FAR
 

@@ -30,11 +30,11 @@ class Config():
         # self.goal_pos = Point(-402, -727, -100)
         
         # left-> right
-        self.start_pos = Point(-375,-930,-100)
+        self.start_pos = Point(-375,-880,-100)
         self.goal_pos = Point(-367,-682,-100)
         self.speed = 5
 
-        self.obst_timeout = 3      # [Sec] Timeout for the obstacle detection
+        self.obst_timeout = 1      # [Sec] Timeout for the obstacle detection
         self.close_range_thr = 6   # [Meters] Less than this thr => obstacle is NEAR. More than thr => obstacle is IN_RANGE
         self.in_range_thr = 12     # [Meters] More than thr => obstacle is FAR
 

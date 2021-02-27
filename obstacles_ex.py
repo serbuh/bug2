@@ -8,6 +8,7 @@ import numpy as np
 import pandas 
 import matplotlib.pyplot as plt
 from enum import Enum
+from functools import total_ordering
 import math
 import json
 
@@ -156,7 +157,8 @@ class bug2():
                 and now - self.last_nonzero_correction_time > self.config.correction_period):
 
                 self.correct_desired_azimuth_and_fly(-self.config.correction_return_to_obst) # increase even more
-            elif self.obstacles.sectors[obst_direction.RIGHT].get_range() == obst_range.IN_RANGE:
+
+            elif self.obstacles.sectors[obst_direction.RIGHT].get_range() > obst_range.NEAR:
                 self.correct_desired_azimuth_and_fly(0) # Stay on course
                 self.change_state(bug2_state.WALL_FOLLOW_HOLD_RANGE) # come back to hold range state
 
@@ -166,7 +168,8 @@ class bug2():
                 and now - self.last_nonzero_correction_time > self.config.correction_period):
 
                 self.correct_desired_azimuth_and_fly(self.config.correction_return_to_obst) # reduce even more
-            elif self.obstacles.sectors[obst_direction.RIGHT].get_range() == obst_range.IN_RANGE:
+
+            elif self.obstacles.sectors[obst_direction.RIGHT].get_range() < obst_range.FAR:
                 self.correct_desired_azimuth_and_fly(0) # Stay on course
                 self.change_state(bug2_state.WALL_FOLLOW_HOLD_RANGE) # come back to hold range state
 
@@ -179,7 +182,8 @@ class bug2():
 
     def change_state(self, new_state):
         if new_state != self.state:
-            print("State: {} -> {}".format(self.state.name, new_state.name))
+            #print("State: {} -> {}".format(self.state.name, new_state.name))
+            print("{}".format(ObstaclesDirections.get_state_as_string(new_state)))
             self.state = new_state
             self.last_state_change_time = time.time()
     
@@ -219,7 +223,7 @@ class bug2():
         return Point(x, y, self.goal_pos.z)
 
 class ObstaclesDirections():
-    ''' Handles the range report for all the sectors (FRONT\LEFT\etc.) '''
+    ''' Handles the range report for all the sectors (FRONT/LEFT/etc.) '''
     def __init__(self, config):
         self.config = config
         self.not_sent_statuses = 0
@@ -245,7 +249,7 @@ class ObstaclesDirections():
         front_range = self.sectors[obst_direction.FRONT].get_range_as_string()
         right_range = self.sectors[obst_direction.RIGHT].get_range_as_string()
         
-        drone_state_str = self.get_state_as_string(drone_state)
+        drone_state_str = ObstaclesDirections.get_state_as_string(drone_state)
         status_msg = "{}\n[{}|{}|{}]\nazimuth : {:.1f}\ndesired : {:.1f}".format(drone_state_str, left_range, front_range, right_range, drone_azimuth, desired_azimuth)
         #print(status_msg)
         # Send status over UDP
@@ -254,8 +258,9 @@ class ObstaclesDirections():
             msg = str.encode(json.dumps(status_msg))
             self.config.udp_send_sock.sendto(msg, self.config.udp_addr)
         self.not_sent_statuses += 1
-
-    def get_state_as_string(self, state):
+    
+    @staticmethod
+    def get_state_as_string(state):
         if state == bug2_state.GO_TO_POINT:
             return "        ^^^        "
         elif state == bug2_state.WALL_FOLLOW_SET_COURSE:
@@ -268,14 +273,16 @@ class ObstaclesDirections():
             return "  <<<              "
     
 class ObstacleDescriptor():
-    ''' Handles the range report for one sector (FRONT\LEFT\etc.) '''
+    ''' Handles the range report for one sector (FRONT/LEFT/etc.) '''
     def __init__(self, config):
         self.config = config
         self.last_detection_time = time.time()-2*config.obst_timeout
         self.range = obst_range.NOT_IN_RANGE # init as a timed out obstacle
 
-    def update_description(self, last_detection_time, distance):
-        self.last_detection_time = last_detection_time
+    def update_description(self, new_detection_time, distance):
+        #if time.time() - last_detection_time > self.config.obst_timeout # TODO add closest detection, considering timeout (update detection to more distant only after a timeout)
+
+        self.last_detection_time = new_detection_time
         self.range = self.distance_to_range(distance)
     
     def distance_to_range(self, distance):
@@ -288,7 +295,7 @@ class ObstacleDescriptor():
 
     def get_range(self):
         # Check if obstacle is not timed out
-        if time.time() - self.last_detection_time > self.config.obst_timeout:
+        if time.time() - self.last_detection_time > self.config.obst_timeout: # TODO recheck the NOT_IN_RANGE logic...
             self.range = obst_range.NOT_IN_RANGE
 
         return self.range
@@ -296,11 +303,11 @@ class ObstacleDescriptor():
     def get_range_as_string(self):
         range = self.get_range()
         if range == obst_range.NEAR:
-            return "#####"
+            return "....."
         elif range == obst_range.IN_RANGE:
-            return " ... "
+            return " ### "
         elif range == obst_range.FAR:
-            return "  #  "
+            return "  .  "
         elif range == obst_range.NOT_IN_RANGE:
             return "     "
         else:
@@ -318,11 +325,16 @@ class obst_direction(Enum):
     FRONT = 1
     RIGHT = 2
 
+@total_ordering
 class obst_range(Enum):
     NEAR = 0
     IN_RANGE = 1
     FAR = 2
     NOT_IN_RANGE = 3 # Timed out
+    def __lt__(self, other): # implementation of < operator
+       if self.__class__ is other.__class__:
+           return self.value < other.value
+       return NotImplemented
 
 
 

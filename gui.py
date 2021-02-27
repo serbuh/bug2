@@ -38,7 +38,7 @@ class MainWindow():
     def __init__(self, master, conn):
         self.conn = conn # UDP connection object
         self.master = master
-        self.master.geometry('300x300')
+        self.master.geometry('400x200')
         self.master.title("Drone GUI")
         self.master.bind("<q>", self.q_pressed)
         self.master.bind("<t>", self.t_pressed)
@@ -60,7 +60,7 @@ class MainWindow():
         self.status_text = tk.StringVar()                 # Create new StringVar
         self.status_text.set("waiting for status update") # Update the StringVar (label's) text
         # Create the lable itself and assign a text
-        self.label = tk.Label(master = self.master, textvariable = self.status_text, font = "Times 20", anchor = "w")
+        self.label = tk.Label(master = self.master, textvariable = self.status_text, font = "Consolas 20", anchor = "w", justify = tk.LEFT)
         self.label.grid(row=2, column=0, sticky="W")
 
         self.master.after(10, self.get_new_status_msg)

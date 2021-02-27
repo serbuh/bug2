@@ -79,17 +79,19 @@ def get_lidar_world_frame(lidar_relative_drone,res ):
 
 class bug2():
     def __init__(self, config, client):
+        self.config = config
         self.state = bug2_state.GO_TO_POINT # initial state
         self.start_pos = config.start_pos
         self.goal_pos = config.goal_pos
         self.speed = config.speed
         self.client = client
-        self.state_time_counter = 0
         self.obstacles = ObstaclesDirections(config)
-        self.desired_azimuth = self.calc_azimuth_from_two_points(self.start_pos, self.goal_pos) # Drone Navigation will use this
-        self.drone_position = None # holds real drone position
-        self.drone_azimuth = None # holds real drone azimuth
-
+        self.desired_azimuth = self.calc_azimuth_from_two_points(self.start_pos, self.goal_pos) # Drone navigation
+        self.drone_position = None          # holds real drone position
+        self.drone_azimuth = None           # holds real drone azimuth
+        now = time.time()
+        self.last_state_change_time = now       # time duration of the current state
+        self.last_nonzero_correction_time = now # time duration after last course correction
         
 
     def run_iteration(self, lidar_relative_drone, lidar_world_frame, drone_position, drone_azimuth):
@@ -99,7 +101,7 @@ class bug2():
         #print(len(points), points)
         dist_to_m_line = self.distance_to_line(drone_position)
         #print("distance to m-line: {:.2f}".format(dist_to_m_line))
-        
+
         if int(len(points)) > 1:
             # Obstacle detected
             front = points[0]
@@ -107,46 +109,63 @@ class bug2():
             dist_to_obst = np.sqrt(front**2+side**2)
             angle = np.arctan2(side,front)
             self.obstacles.update_description(np.degrees(angle), dist_to_obst)
-            
         
+        now = time.time()
 
         if self.state == bug2_state.GO_TO_POINT:
             if (self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.IN_RANGE 
                 or self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.NEAR):
-                    # Change state
-                    self.change_state(bug2_state.WALL_FOLLOW_SET_COURSE)
+                
+                # Change state
+                self.change_state(bug2_state.WALL_FOLLOW_SET_COURSE)
             else:
+                
                 # Continue going to the point
                 self.desired_azimuth = self.calc_azimuth_from_two_points(self.drone_position, self.goal_pos)
                 #print("Drone: {} Goal {} az {}".format(self.drone_position, self.goal_pos, self.desired_azimuth))
                 self.correct_desired_azimuth_and_fly(0)
-                
-            
+
+
         elif self.state == bug2_state.WALL_FOLLOW_SET_COURSE:
             if (self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.IN_RANGE 
-                or self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.NEAR): # TODO play with the sector conditions
+                or self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.NEAR):
                 
-                self.correct_desired_azimuth_and_fly(-90)
+                self.correct_desired_azimuth_and_fly(self.config.correction_obst_meet)
                 self.change_state(bug2_state.WALL_FOLLOW_HOLD_RANGE)
         
-        elif self.state == bug2_state.WALL_FOLLOW_HOLD_RANGE:
-            self.correct_desired_azimuth_and_fly(0) # Stay on course
 
-            #if self.state_time_counter > 100 and dist_to_m_line < 3: # TODO play with those params
+        elif self.state == bug2_state.WALL_FOLLOW_HOLD_RANGE:
+            if (self.obstacles.sectors[obst_direction.RIGHT].get_range() == obst_range.NEAR
+                and now - self.last_nonzero_correction_time > self.config.correction_period):
+                
+                self.correct_desired_azimuth_and_fly(-self.config.correction_return_to_obst)
+            
+            elif self.obstacles.sectors[obst_direction.RIGHT].get_range() == obst_range.IN_RANGE:
+            
+                self.correct_desired_azimuth_and_fly(0) # Stay on course
+            
+            elif (self.obstacles.sectors[obst_direction.RIGHT].get_range() == obst_range.FAR
+                and now - self.last_nonzero_correction_time > self.config.correction_period):
+            
+                self.correct_desired_azimuth_and_fly(self.config.correction_return_to_obst)
+
+            
+            #if time.time() - self.last_state_change_time > 5 and dist_to_m_line < 3: # TODO play with those params
             #    self.change_state(bug2_state.GO_TO_POINT)
         
-        self.obstacles.print_state(self.drone_azimuth, self.desired_azimuth)
+        self.obstacles.print_state(self.drone_azimuth, self.desired_azimuth, self.state.name)
 
-        self.state_time_counter += 1
 
     def change_state(self, new_state):
         if new_state != self.state:
             print("State: {} -> {}".format(self.state.name, new_state.name))
             self.state = new_state
-            self.state_time_counter = 0
+            self.last_state_change_time = time.time()
     
-    def correct_desired_azimuth_and_fly(self, delta_deg):
-        self.desired_azimuth += delta_deg
+    def correct_desired_azimuth_and_fly(self, correction_deg):
+        if correction_deg < -0.01 or correction_deg > 0.01: # corection != 0
+            self.last_nonzero_correction_time = time.time()
+        self.desired_azimuth += correction_deg
         self.desired_azimuth = (self.desired_azimuth + 360) % 360 # keep azimuth in range (0,360)
         #print("desired az {:.2f}".format(self.desired_azimuth))
         curr_goal_pos = self.calc_desired_wp_from_azimuth(self.drone_position, self.desired_azimuth)
@@ -200,12 +219,12 @@ class ObstaclesDirections():
         else:
             return obst_direction.RIGHT
 
-    def print_state(self, drone_azimuth, desired_azimuth):
+    def print_state(self, drone_azimuth, desired_azimuth, drone_state):
         left_range  = self.sectors[obst_direction.LEFT].get_range_as_string()
         front_range = self.sectors[obst_direction.FRONT].get_range_as_string()
         right_range = self.sectors[obst_direction.RIGHT].get_range_as_string()
         
-        status_msg = "[{}|{}|{}] az {:.1f} d_az {:.1f}".format(left_range, front_range, right_range, drone_azimuth, desired_azimuth)
+        status_msg = "[{}|{}|{}]\nazimuth : {:.1f}\ndesired : {:.1f}\n{}".format(left_range, front_range, right_range, drone_azimuth, desired_azimuth, drone_state)
         #print(status_msg)
         # Send status over UDP
         if self.config.send_to_gui and self.not_sent_statuses >= self.config.status_send_cycle:

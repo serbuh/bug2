@@ -34,12 +34,14 @@ class Config():
         self.goal_pos = Point(-367,-682,-100)
         self.speed = 5
 
-        self.obst_timeout = 1      # [Sec] Timeout for the obstacle detection
-        self.not_in_range_timeout = 1.5 # [Sec] If after this <var> seconds there is no obst. detection => report not_in_range
-        self.close_range_thr = 6   # [Meters] Less than this thr => obstacle is NEAR. More than thr => obstacle is IN_RANGE
-        self.in_range_thr = 12     # [Meters] More than thr => obstacle is FAR
+        self.obst_timeout = 1       # [Sec] Timeout for the obstacle detection
+        self.far_away_timeout = 1.5 # [Sec] If after this <var> seconds there is no obst. detection => report far_away
+        self.close_range_thr = 6    # [Meters] Less than this thr => obstacle is NEAR. More than thr => obstacle is in MIDDLE range
+        self.in_range_thr = 12      # [Meters] More than thr => obstacle is FAR
 
-        self.correction_period = 1 # [Sec] Allow correcting course every <var> seconds while wall following
-        self.correction_obst_meet = -90 # [Deg] turn <var> degrees when encountering obstacle in range in go to mode
+        self.correction_period = 1          # [Sec] Allow correcting course every <var> seconds while wall following
+        self.reduce_range_timeout = 2       # [Sec] Stop trying to come back to the wall. Just fly to the target
+        self.correction_obst_meet = -90     # [Deg] turn <var> degrees when encountering obstacle in range in go to mode
         self.correction_return_to_obst = 20 # [Deg] turn <var> degrees towards or away from the wall to compensate the delta from the perfect distance
+        self.collition_avoid_maneuver = 2   # [Sec] Allow sharp turn to avoid collition every <var> seconds
         print("Configuration complete!")

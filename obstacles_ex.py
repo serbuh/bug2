@@ -114,8 +114,9 @@ class bug2():
         self.drone_position = None          # holds real drone position
         self.drone_azimuth = None           # holds real drone azimuth
         now = time.time()
-        self.last_state_change_time = now       # time duration of the current state
-        self.last_nonzero_correction_time = now # time duration after last course correction
+        self.last_state_change_time = now       # last state change
+        self.last_nonzero_correction_time = now # last course correction
+        self.last_sharp_turn_avoid_coll = now   # last sharp turn (collision avoidance)
 
         
         
@@ -140,7 +141,7 @@ class bug2():
 
         # Go to state
         if self.state == bug2_state.GO_TO_POINT:
-            if (self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.IN_RANGE 
+            if (self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.MIDDLE 
                 or self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.NEAR):
                 
                 # Change state
@@ -154,10 +155,9 @@ class bug2():
 
         # Transfer to wall follow state
         elif self.state == bug2_state.WALL_FOLLOW_SET_COURSE:
-            if (self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.IN_RANGE 
-                or self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.NEAR):
+            if self.obstacles.sectors[obst_direction.FRONT].get_range() <= obst_range.MIDDLE:
                 
-                self.correct_desired_azimuth_and_fly(self.config.correction_obst_meet)
+                self.correct_desired_azimuth_and_fly(self.config.correction_obst_meet) # Sharp left
                 self.change_state(bug2_state.WALL_FOLLOW_HOLD_RANGE)
         
         # Wall follow hold range state
@@ -167,7 +167,7 @@ class bug2():
                 self.correct_desired_azimuth_and_fly(-self.config.correction_return_to_obst) # correct range once and change to suitable state
                 self.change_state(bug2_state.WALL_FOLLOW_INCREASE_RANGE)
             
-            elif self.obstacles.sectors[obst_direction.RIGHT].get_range() == obst_range.IN_RANGE:
+            elif self.obstacles.sectors[obst_direction.RIGHT].get_range() == obst_range.MIDDLE:
             
                 self.correct_desired_azimuth_and_fly(0) # Stay on course
             
@@ -180,7 +180,6 @@ class bug2():
         elif self.state == bug2_state.WALL_FOLLOW_INCREASE_RANGE:
             if (self.obstacles.sectors[obst_direction.RIGHT].get_range() == obst_range.NEAR
                 and now - self.last_nonzero_correction_time > self.config.correction_period):
-
                 self.correct_desired_azimuth_and_fly(-self.config.correction_return_to_obst) # increase even more
 
             elif self.obstacles.sectors[obst_direction.RIGHT].get_range() > obst_range.NEAR:
@@ -189,7 +188,11 @@ class bug2():
 
         # Wall follow reduce range state
         elif self.state == bug2_state.WALL_FOLLOW_REDUCE_RANGE:
-            if (self.obstacles.sectors[obst_direction.RIGHT].get_range() == obst_range.FAR
+            if self.obstacles.sectors[obst_direction.RIGHT].get_range() == obst_range.FAR_AWAY:
+                self.correct_desired_azimuth_and_fly(90)
+                self.change_state(bug2_state.WALL_FOLLOW_SHARP_REDUCE_RANGE)
+            
+            elif (self.obstacles.sectors[obst_direction.RIGHT].get_range() == obst_range.FAR
                 and now - self.last_nonzero_correction_time > self.config.correction_period):
 
                 self.correct_desired_azimuth_and_fly(self.config.correction_return_to_obst) # reduce even more
@@ -202,6 +205,22 @@ class bug2():
             #if time.time() - self.last_state_change_time > 5 and dist_to_m_line < 3: # TODO play with those params
             #    self.change_state(bug2_state.GO_TO_POINT)
         
+        elif self.state == bug2_state.WALL_FOLLOW_SHARP_REDUCE_RANGE:
+            if self.obstacles.sectors[obst_direction.RIGHT].get_range() < obst_range.FAR:
+                self.correct_desired_azimuth_and_fly(0) # Stay on course
+                self.change_state(bug2_state.WALL_FOLLOW_HOLD_RANGE) # come back to hold range state
+            
+            elif now - self.last_nonzero_correction_time > self.config.reduce_range_timeout:
+                self.change_state(bug2_state.GO_TO_POINT) # Stop trying to return to the obstacle
+            
+
+        if (self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.NEAR
+            and now - self.last_sharp_turn_avoid_coll > self.config.collition_avoid_maneuver):
+            
+            self.correct_desired_azimuth_and_fly(-90)
+            logger.info("Avoid collition from FRONT! Sharp left!")
+            self.last_sharp_turn_avoid_coll = now
+
         self.obstacles.print_state(self.drone_azimuth, self.desired_azimuth, self.state)
 
 
@@ -313,7 +332,7 @@ class ObstacleDescriptor():
     def __init__(self, config):
         self.config = config
         self.last_detection_time = time.time()-2*config.obst_timeout
-        self.range = obst_range.NOT_IN_RANGE # init as a timed out obstacle
+        self.range = obst_range.FAR_AWAY # init as a timed out obstacle
 
     def update_description(self, new_detection_time, distance):
         new_range = self.distance_to_range(distance)
@@ -328,27 +347,27 @@ class ObstacleDescriptor():
         if distance < self.config.close_range_thr:
             return obst_range.NEAR
         elif distance < self.config.in_range_thr:
-            return obst_range.IN_RANGE
+            return obst_range.MIDDLE
         else:
             return obst_range.FAR
 
     def get_range(self):
         # Check if obstacle is not timed out
-        if time.time() - self.last_detection_time > self.config.not_in_range_timeout: # TODO recheck the NOT_IN_RANGE logic...
-            self.range = obst_range.NOT_IN_RANGE
+        if time.time() - self.last_detection_time > self.config.far_away_timeout: # TODO recheck the FAR_AWAY logic...
+            self.range = obst_range.FAR_AWAY
 
         return self.range
     
     def get_range_as_string(self):
         range = self.get_range()
         if range == obst_range.NEAR:
-            return " ### "
-        elif range == obst_range.IN_RANGE:
-            return " ... "
+            return "CLOSE"
+        elif range == obst_range.MIDDLE:
+            return "  V  "
         elif range == obst_range.FAR:
-            return "  #  "
-        elif range == obst_range.NOT_IN_RANGE:
-            return "  *  "
+            return " FAR "
+        elif range == obst_range.FAR_AWAY:
+            return " FAR!"
         else:
             return "?WTF?"
 
@@ -358,6 +377,7 @@ class bug2_state(Enum):
     WALL_FOLLOW_HOLD_RANGE = 2
     WALL_FOLLOW_REDUCE_RANGE = 3
     WALL_FOLLOW_INCREASE_RANGE = 4
+    WALL_FOLLOW_SHARP_REDUCE_RANGE = 5
 
 class obst_direction(Enum):
     LEFT = 0
@@ -367,9 +387,9 @@ class obst_direction(Enum):
 @total_ordering
 class obst_range(Enum):
     NEAR = 0
-    IN_RANGE = 1
+    MIDDLE = 1
     FAR = 2
-    NOT_IN_RANGE = 3 # Timed out
+    FAR_AWAY = 3 # Timed out
     def __lt__(self, other): # implementation of < operator
        if self.__class__ is other.__class__:
            return self.value < other.value

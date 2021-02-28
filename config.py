@@ -17,6 +17,8 @@ class Config():
         except:
             print("Error during socket creation")
         
+        self.log_everything = True # log more for debug
+
         self.status_send_cycle = 30 # Send status message every <status_send_cycle> time 
 
         self.left_border = -30
@@ -32,16 +34,21 @@ class Config():
         # left-> right
         self.start_pos = Point(-375,-880,-100)
         self.goal_pos = Point(-367,-682,-100)
+        self.max_distance_to_goal = 3  # [Meters] Drone stops when reaches max distance to goal
         self.speed = 5
 
         self.obst_timeout = 1       # [Sec] Timeout for the obstacle detection
         self.far_away_timeout = 1.5 # [Sec] If after this <var> seconds there is no obst. detection => report far_away
-        self.close_range_thr = 6    # [Meters] Less than this thr => obstacle is NEAR. More than thr => obstacle is in MIDDLE range
+        self.m_line_time_delay = 5  # [Sec] start check
+
+        self.close_range_thr = 7    # [Meters] Less than this thr => obstacle is NEAR. More than thr => obstacle is in MIDDLE range
         self.in_range_thr = 12      # [Meters] More than thr => obstacle is FAR
+        self.max_m_line_dist = 4    # [Meters] If less than <var> meters to m-line => change back to GO_TO_LINE state
 
         self.correction_period = 1          # [Sec] Allow correcting course every <var> seconds while wall following
-        self.reduce_range_timeout = 2       # [Sec] Stop trying to come back to the wall. Just fly to the target
-        self.correction_obst_meet = -90     # [Deg] turn <var> degrees when encountering obstacle in range in go to mode
+        self.reduce_range_timeout = 4       # [Sec] Stop trying to come back to the wall. Just fly to the target
+        self.correction_obst_meet = -90     # [Deg] turn sharp <var> degrees when encountering obstacle in range in go to mode
+        self.sharp_reduce_range = 90        # [Deg] turn sharp <var> degrees back to obstacle
         self.correction_return_to_obst = 20 # [Deg] turn <var> degrees towards or away from the wall to compensate the delta from the perfect distance
         self.collition_avoid_maneuver = 2   # [Sec] Allow sharp turn to avoid collition every <var> seconds
         print("Configuration complete!")

@@ -38,7 +38,7 @@ class MainWindow():
     def __init__(self, master, conn):
         self.conn = conn # UDP connection object
         self.master = master
-        self.master.geometry('400x200')
+        self.master.geometry('400x250')
         self.master.title("Drone GUI")
         self.master.bind("<q>", self.q_pressed)
         self.master.bind("<t>", self.t_pressed)

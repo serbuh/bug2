@@ -9,7 +9,7 @@ import pandas
 import numpy as np
 from plotter import Plotter
 from shapely.geometry.polygon import Polygon, LineString
-from obstacles_ex import obstacles_ex
+import coordinate_convertions
 
 config = Config() # load config
 
@@ -45,16 +45,17 @@ class MainWindow():
     '''
     Main window - GUI entry point
     '''
-    def __init__(self, master, conn):
+    def __init__(self, master, UDP_conn_gui, UDP_conn_plot):
         print("Init Plotter")
         self.plotter = Plotter()
         pandas.read_csv("obstacles_100m_above_sea_level.csv").to_numpy()
-        obstacles = obstacles_ex(pandas.read_csv("obstacles_100m_above_sea_level.csv").to_numpy())
+        obstacles = coordinate_convertions.obstacles_ex(pandas.read_csv("obstacles_100m_above_sea_level.csv").to_numpy())
         m_line = LineString([(config.start_pos.x, config.start_pos.y), (config.goal_pos.x, config.goal_pos.y)])
         self.plotter.plot_static(obstacles=obstacles,m_line = m_line)
 
         print("Init GUI")
-        self.conn = conn # UDP connection object
+        self.UDP_conn_gui = UDP_conn_gui # UDP connection object
+        self.UDP_conn_plot = UDP_conn_plot
         self.master = master
         self.master.geometry('400x250')
         self.master.title("Drone GUI")
@@ -84,15 +85,16 @@ class MainWindow():
         self.master.after(10, self.get_new_status_msg)
 
     def get_new_status_msg(self):
-        message = self.conn.recv() # Get new message from UDP socket
+        message = self.UDP_conn_gui.recv() # Get new message from UDP socket
         if message is not None:
             self.status_text.set(message) # Update the status
 
         # Get drone_pose, lidar_world_frame
-
-        # Plot
-        self.plotter.set_axes_limit()
-        self.plotter.plot_drone_and_lidar_pos(drone_pose=drone_pose, lidar_world_frame=lidar_world_frame)
+        plt_msg = self.UDP_conn_plot.recv() # Get new message from UDP socket
+        if plt_msg is not None:
+            # Plot
+            self.plotter.set_axes_limit()
+            self.plotter.plot_drone_and_lidar_pos(plt_msg["drone_pose_x"], plt_msg["drone_pose_y"], None)#plt_msg["lidar_world_frame"]))
 
         self.master.after(10, self.get_new_status_msg)
 
@@ -116,6 +118,7 @@ class MainWindow():
 
 
 root = tk.Tk()
-conn = UDP(("127.0.0.1", 5077)) # UDP connection object
-MainWindow(root, conn)
+UDP_conn_gui = UDP(("127.0.0.1", 5077)) # UDP connection object
+UDP_conn_plot = UDP(("127.0.0.1", 5078))
+MainWindow(root, UDP_conn_gui, UDP_conn_plot)
 root.mainloop()

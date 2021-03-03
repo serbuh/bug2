@@ -1,39 +1,44 @@
 import socket
 from shapely.geometry import Point, point
 
-class Config():
-    def __init__(self):
-        print("Start configuration")
-        # UDP connection to GUI
-        self.send_to_gui = True
-        self.udp_addr_gui = ("127.0.0.1", 5077)
-        try:
-            if self.send_to_gui:
+class UDP_sender():
+    def __init__(self, target):
+        self.send_to_plotter = False
+        self.send_to_gui = False
+        
+        if target == "GUI":
+            # UDP connection to GUI
+            self.send_to_gui = True
+            self.udp_addr_gui = ("127.0.0.1", 5077)
+            try:
                 print("Init communication with external GUI")
                 self.udp_send_sock_gui = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 self.udp_send_sock_gui.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            else:
-                self.udp_send_sock_gui = None
-        except:
-            print("Error during socket creation")
-
-        print("Init UDP connection to GUI plotter")
-        self.send_to_plotter = True
-        self.udp_addr_plotter = ("127.0.0.1", 5078)
-        try:
-            if self.send_to_plotter:
+            except:
+                print("Error during socket creation")
+        
+        elif target == "Plotter":
+            print("Init UDP connection to GUI plotter")
+            self.send_to_plotter = True
+            self.udp_addr_plotter = ("127.0.0.1", 5078)
+            try:
                 print("Init communication with external GUI plotter")
                 self.udp_send_sock_plotter = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 self.udp_send_sock_plotter.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            else:
-                self.udp_send_sock_plotter = None
-        except:
-            print("Error during socket creation")
+            except:
+                print("Error during socket creation")
+
+
+class Config():
+    def __init__(self):
+        print("Start configuration")
+        
         
         self.log_everything = True # log more for debug
 
-        self.status_send_cycle = 30 # Send status message every <status_send_cycle> time 
-
+        self.status_send_cycle = 30 # Send status message every <status_send_cycle> time
+        self.status_send_cycle_plotter = 30 # Send status message to plotter every <status_send_cycle> time
+        
         self.left_border = -30
         self.right_border = 30
         

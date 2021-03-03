@@ -36,37 +36,6 @@ logger.propagate = False
 logger.info("Log started")
 
 
-def ccw_sort(p):
-        """Sort given polygon points in CCW order"""
-        p = np.array(p)
-        mean = np.mean(p,axis=0)
-        d = p-mean
-        s = np.arctan2(d[:,0], d[:,1])
-        return p[np.argsort(s),:]
-
-def sort_polygon(coords):
-    x=coords
-    lx=[]
-    for i in range(int(len(x)/2)):
-        lx.append((x[2*i], x[2*i+1]))
-    sorted_coords_list =list(ccw_sort(lx))
-    return sorted_coords_list
-
-def obstacles_ex(obs_cordinates):
-    obs_dic = {}
-    for line in obs_cordinates:
-        if line[4] not in obs_dic.keys(): #  obs type
-            obs_dic[line[4]] = []
-        obs_dic[line[4]].append(line[1]) # x- coord
-        obs_dic[line[4]].append(line[2])# y- coord
-
-    obstacles = []
-    for key in obs_dic.keys():
-        sorted = sort_polygon(obs_dic[key])   
-        polygon = Polygon(sorted)
-        obstacles.append(polygon)
-    
-    return obstacles
 
 def rotation(x,y,z):
     rx= np.array([[1, 0,0], [0, np.cos(x), np.sin(x)], [0, -np.sin(x), np.cos(x)]])
@@ -102,14 +71,15 @@ def get_lidar_world_frame(lidar_relative_drone,res ):
 
 
 class bug2():
-    def __init__(self, config, client):
+    def __init__(self, config, udp_sender_gui, client):
         self.config = config
+        self.udp_sender_gui = udp_sender_gui
         self.state = bug2_state.GO_TO_POINT # initial state
         self.start_pos = config.start_pos
         self.goal_pos = config.goal_pos
         self.speed = config.speed
         self.client = client
-        self.obstacles = ObstaclesDirections(config)
+        self.obstacles = ObstaclesDirections(config, udp_sender_gui)
         self.desired_azimuth = self.calc_azimuth_from_two_points(self.start_pos, self.goal_pos) # Drone navigation
         self.drone_position = None          # holds real drone position
         self.drone_azimuth = None           # holds real drone azimuth
@@ -304,8 +274,9 @@ class bug2():
 
 class ObstaclesDirections():
     ''' Handles the range report for all the sectors (FRONT/LEFT/etc.) '''
-    def __init__(self, config):
+    def __init__(self, config, udp_sender_gui):
         self.config = config
+        self.udp_sender_gui = udp_sender_gui
         self.not_sent_statuses = 0
         
         # Initialize obstacle descriptors for each sector with timed out detection times  
@@ -332,10 +303,10 @@ class ObstaclesDirections():
         if self.config.log_everything:
             logger.info("{}  ( {} ) az {:.1f} ({:.1f})   goal {:.1f} mline {:.1f}".format(obst_string, drone_state_str, drone_azimuth, desired_azimuth, distance_to_goal, distance_to_m_line))
         # Send status over UDP
-        if self.config.send_to_gui and self.not_sent_statuses >= self.config.status_send_cycle:
+        if self.udp_sender_gui.send_to_gui and self.not_sent_statuses >= self.config.status_send_cycle:
             self.not_sent_statuses = 0
             msg = str.encode(json.dumps(status_msg))
-            self.config.udp_send_sock_gui.sendto(msg, self.config.udp_addr_gui)
+            self.udp_sender_gui.udp_send_sock_gui.sendto(msg, self.udp_sender_gui.udp_addr_gui)
         self.not_sent_statuses += 1
     
     @staticmethod

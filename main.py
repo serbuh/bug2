@@ -5,14 +5,19 @@ from shapely.geometry.polygon import Polygon, LineString
 from shapely.geometry import Point
 import numpy as np
 import matplotlib.pyplot as plt
-import obstacles_ex
-from config import Config
+from config import Config, UDP_sender
 import socket
 import json
 import math
+import coordinate_convertions
+import obstacles_ex
+
 
 if __name__ == "__main__":
     config = Config() # load config
+    udp_sender_gui = UDP_sender("GUI")
+    udp_sender_plotter = UDP_sender("Plotter")
+    not_sent_statuses_plot = 0
     print("Init the simulator...")
     client = DroneClient()
     print("Connecting to the simulator...")
@@ -24,7 +29,7 @@ if __name__ == "__main__":
     client.setAtPosition(config.start_pos.x, config.start_pos.y, config.start_pos.z)
 
     print("Init bug2")
-    bug2 = obstacles_ex.bug2(config, client)
+    bug2 = obstacles_ex.bug2(config, udp_sender_gui, client)
     print("Lets fly!")
     while True:
         drone_pose = client.getPose()
@@ -38,9 +43,12 @@ if __name__ == "__main__":
         bug2.run_iteration(lidar_relative_drone, lidar_world_frame, drone_position, drone_azimuth)
 
         # Send to plot: drone_pose, lidar_world_frame
-        if config.send_to_plotter:
-            config.udp_send_sock_gui.sendto(b"blya", config.udp_addr_plotter)
-
+        if udp_sender_plotter.send_to_plotter and not_sent_statuses_plot >= config.status_send_cycle_plotter:
+            not_sent_statuses_plot = 0
+            msg = str.encode(json.dumps({"drone_pose_x": drone_pose.pos.x_m, "drone_pose_y": drone_pose.pos.y_m}))#, "lidar_world_frame": lidar_world_frame.tolist()}))
+            udp_sender_plotter.udp_send_sock_plotter.sendto(msg, udp_sender_plotter.udp_addr_plotter)
+        not_sent_statuses_plot += 1
+        
 
 
         

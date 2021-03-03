@@ -4,16 +4,29 @@ from shapely.geometry import Point, point
 class Config():
     def __init__(self):
         print("Start configuration")
-        # UDP connection
+        # UDP connection to GUI
         self.send_to_gui = True
-        self.udp_addr = ("127.0.0.1", 5077)
+        self.udp_addr_gui = ("127.0.0.1", 5077)
         try:
             if self.send_to_gui:
                 print("Init communication with external GUI")
-                self.udp_send_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                self.udp_send_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                self.udp_send_sock_gui = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                self.udp_send_sock_gui.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             else:
-                self.udp_send_sock = None
+                self.udp_send_sock_gui = None
+        except:
+            print("Error during socket creation")
+
+        print("Init UDP connection to GUI plotter")
+        self.send_to_plotter = True
+        self.udp_addr_plotter = ("127.0.0.1", 5078)
+        try:
+            if self.send_to_plotter:
+                print("Init communication with external GUI plotter")
+                self.udp_send_sock_plotter = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                self.udp_send_sock_plotter.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            else:
+                self.udp_send_sock_plotter = None
         except:
             print("Error during socket creation")
         

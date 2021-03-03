@@ -1,14 +1,13 @@
 from DroneClient import DroneClient
 import time
 import airsim.utils
-#from Plotter import Plotter
 from shapely.geometry.polygon import Polygon, LineString 
 from shapely.geometry import Point
 import numpy as np
 import pandas 
 import matplotlib.pyplot as plt
 
-class plotter:
+class Plotter:
     def __init__(self):
         plt.ion()
         self.fig = plt.figure()

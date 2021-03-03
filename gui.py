@@ -3,6 +3,16 @@ import socket
 import json
 import select
 
+# plotter imports
+from config import Config
+import pandas
+import numpy as np
+from plotter import Plotter
+from shapely.geometry.polygon import Polygon, LineString
+from obstacles_ex import obstacles_ex
+
+config = Config() # load config
+
 if sys.version_info[0] == 2:
     import Tkinter as tk # for python2
 else:
@@ -36,6 +46,14 @@ class MainWindow():
     Main window - GUI entry point
     '''
     def __init__(self, master, conn):
+        print("Init Plotter")
+        self.plotter = Plotter()
+        pandas.read_csv("obstacles_100m_above_sea_level.csv").to_numpy()
+        obstacles = obstacles_ex(pandas.read_csv("obstacles_100m_above_sea_level.csv").to_numpy())
+        m_line = LineString([(config.start_pos.x, config.start_pos.y), (config.goal_pos.x, config.goal_pos.y)])
+        self.plotter.plot_static(obstacles=obstacles,m_line = m_line)
+
+        print("Init GUI")
         self.conn = conn # UDP connection object
         self.master = master
         self.master.geometry('400x250')
@@ -69,6 +87,13 @@ class MainWindow():
         message = self.conn.recv() # Get new message from UDP socket
         if message is not None:
             self.status_text.set(message) # Update the status
+
+        # Get drone_pose, lidar_world_frame
+
+        # Plot
+        self.plotter.set_axes_limit()
+        self.plotter.plot_drone_and_lidar_pos(drone_pose=drone_pose, lidar_world_frame=lidar_world_frame)
+
         self.master.after(10, self.get_new_status_msg)
 
     def t_pressed(self, event):

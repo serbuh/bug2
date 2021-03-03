@@ -335,7 +335,7 @@ class ObstaclesDirections():
         if self.config.send_to_gui and self.not_sent_statuses >= self.config.status_send_cycle:
             self.not_sent_statuses = 0
             msg = str.encode(json.dumps(status_msg))
-            self.config.udp_send_sock.sendto(msg, self.config.udp_addr)
+            self.config.udp_send_sock_gui.sendto(msg, self.config.udp_addr_gui)
         self.not_sent_statuses += 1
     
     @staticmethod

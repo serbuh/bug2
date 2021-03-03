@@ -47,7 +47,9 @@ class Config():
 
         self.correction_period = 1          # [Sec] Allow correcting course every <var> seconds while wall following
         self.reduce_range_timeout = 4       # [Sec] Stop trying to come back to the wall. Just fly to the target
+        self.sharp_left_timeout = 1         # [Sec] Time period for completion of sharp left turn
         self.correction_obst_meet = -90     # [Deg] turn sharp <var> degrees when encountering obstacle in range in go to mode
+        self.correction_obst_avoid = -90    # [Deg] turn sharp <var> degrees when encountering obstacle in range in ANY mode
         self.sharp_reduce_range = 90        # [Deg] turn sharp <var> degrees back to obstacle
         self.correction_return_to_obst = 20 # [Deg] turn <var> degrees towards or away from the wall to compensate the delta from the perfect distance
         self.collition_avoid_maneuver = 2   # [Sec] Allow sharp turn to avoid collition every <var> seconds

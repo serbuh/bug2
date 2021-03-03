@@ -118,6 +118,7 @@ class bug2():
         self.last_nonzero_correction_time = now # last course correction
         self.last_sharp_turn_avoid_coll = now   # last sharp turn (collision avoidance)
         self.last_goto_state_time = now         # last goto state was active
+        self.sharp_left_init_time = now - 2*self.config.sharp_left_timeout # last sharp left time
 
         
         
@@ -151,10 +152,11 @@ class bug2():
         # Go to state
         if self.state == bug2_state.GO_TO_POINT:
             self.last_goto_state_time = now
-            if (self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.MIDDLE 
-                or self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.NEAR):
+            if self.obstacles.sectors[obst_direction.FRONT].get_range() <= obst_range.MIDDLE:
                 
+                self.correct_desired_azimuth_and_fly(self.config.correction_obst_meet) # Sharp left
                 # Change state
+                self.sharp_left_init_time = now
                 self.change_state(bug2_state.WALL_FOLLOW_SET_COURSE)
             else:
                 
@@ -165,9 +167,7 @@ class bug2():
 
         # Transfer to wall follow state
         elif self.state == bug2_state.WALL_FOLLOW_SET_COURSE:
-            if self.obstacles.sectors[obst_direction.FRONT].get_range() <= obst_range.MIDDLE:
-                
-                self.correct_desired_azimuth_and_fly(self.config.correction_obst_meet) # Sharp left
+            if now - self.sharp_left_init_time > self.config.sharp_left_timeout:
                 self.change_state(bug2_state.WALL_FOLLOW_HOLD_RANGE)
         
         # Wall follow hold range state
@@ -206,7 +206,11 @@ class bug2():
 
         # Wall follow reduce range state
         elif self.state == bug2_state.WALL_FOLLOW_REDUCE_RANGE:
-            if self.obstacles.sectors[obst_direction.RIGHT].get_range() <= obst_range.MIDDLE:
+            if self.obstacles.sectors[obst_direction.RIGHT].get_range() == obst_range.NEAR:
+                self.correct_desired_azimuth_and_fly(-self.config.correction_return_to_obst) # increase range
+                self.change_state(bug2_state.WALL_FOLLOW_INCREASE_RANGE) # increase range state
+
+            elif self.obstacles.sectors[obst_direction.RIGHT].get_range() == obst_range.MIDDLE:
                 self.correct_desired_azimuth_and_fly(0) # Stay on course
                 self.change_state(bug2_state.WALL_FOLLOW_HOLD_RANGE) # come back to hold range state
             
@@ -232,7 +236,7 @@ class bug2():
         if (self.obstacles.sectors[obst_direction.FRONT].get_range() == obst_range.NEAR
             and now - self.last_sharp_turn_avoid_coll > self.config.collition_avoid_maneuver):
             
-            self.correct_desired_azimuth_and_fly(-90)
+            self.correct_desired_azimuth_and_fly(self.config.correction_obst_avoid)
             logger.info("Avoid collition from FRONT! Sharp left!")
             self.last_sharp_turn_avoid_coll = now
 
@@ -247,7 +251,7 @@ class bug2():
     def change_state(self, new_state):
         if new_state != self.state:
             #print("State: {} -> {}".format(self.state.name, new_state.name))
-            logger.info("{}  ( {} )".format(self.obstacles.get_obst_string(), ObstaclesDirections.get_state_as_string(new_state)))
+            #logger.info("{}  ( {} )".format(self.obstacles.get_obst_string(), ObstaclesDirections.get_state_as_string(new_state)))
             self.state = new_state
             self.last_state_change_time = time.time()
     

@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 fmt = '%(asctime)s %(message)s'
-date_fmt = "%H:%M:%S"
-formatter = logging.Formatter(fmt, date_fmt)
+#date_fmt = "%H:%M:%S"
+formatter = logging.Formatter(fmt)#, date_fmt)
 
 file_handler = logging.FileHandler('bug2.log', mode='w')
 file_handler.setLevel(logging.INFO)
@@ -314,6 +314,7 @@ class ObstaclesDirections():
                         obst_direction.RIGHT: ObstacleDescriptor(config)}
     
     def update_description(self, angle, distance):
+        #logger.info("angle: {}".format(angle))
         self.sectors[self.angle_to_direction(angle)].update_description(time.time(), distance)
 
     def angle_to_direction(self, angle):

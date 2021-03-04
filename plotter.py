@@ -15,7 +15,17 @@ class Plotter:
         self.ax_obstacle.invert_xaxis()
         self.ax_drone = self.ax_obstacle.twinx()
         self.ax_lidar= self.ax_obstacle.twinx() # relative to world axes
-        
+        self.color_inc = 1/32
+        self.r = 1
+        self.g = 0
+        self.b = 0
+    
+    def next_color(self):
+        self.g += self.color_inc
+        self.g = self.g % 1
+        self.b = 1 - self.g
+        color = (self.r, self.g, self.b)
+        return color
 
     def plot_static(self,obstacles,m_line): #plot obstacle and m-line
         for obstacle in obstacles:
@@ -35,7 +45,7 @@ class Plotter:
     def plot_drone_and_lidar_pos(self, drone_pose_x, drone_pose_y, lidar_world_frame):
         if lidar_world_frame is not None:
             self.ax_lidar.plot((lidar_world_frame[0]),(lidar_world_frame[1]), 'o', color='red')
-        self.ax_drone.plot((drone_pose_x),(drone_pose_y), 'o', color='black')
+        self.ax_drone.plot((drone_pose_x),(drone_pose_y), 'o', color=self.next_color())
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
         #self.ax_drone.clear()

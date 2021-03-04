@@ -37,7 +37,7 @@ class Config():
         self.log_everything = True # log more for debug
 
         self.status_send_cycle = 30 # Send status message every <status_send_cycle> time
-        self.status_send_cycle_plotter = 30 # Send status message to plotter every <status_send_cycle> time
+        self.status_send_cycle_plotter = 100 # Send status message to plotter every <status_send_cycle> time
         
         self.left_border = -30
         self.right_border = 30

@@ -41,6 +41,25 @@ class UDP():
         except BlockingIOError as e:
             print("Socket error: {}".format(e))
 
+    def recv_list(self):
+        try:
+            chunk_list = []
+            new_data_available = True
+            while new_data_available:
+                readable, writable, exceptional = select.select([self.sock], [], [self.sock], 0)
+                if len(readable) == 0:
+                    new_data_available = False
+                for s in readable:
+                    if s is self.sock:
+                        recv_data, address = s.recvfrom(4096)
+                        if isinstance(recv_data, bytes):
+                            recv_data = recv_data.decode() # recvfrom returnes bytes in python3. json.loads() receives str.
+                        chunk_list.append(json.loads(recv_data))
+            return chunk_list # return dict
+        except BlockingIOError as e:
+            print("Socket error: {}".format(e))
+
+
 class MainWindow():
     '''
     Main window - GUI entry point
@@ -90,11 +109,11 @@ class MainWindow():
             self.status_text.set(message) # Update the status
 
         # Get drone_pose, lidar_world_frame
-        plt_msg = self.UDP_conn_plot.recv() # Get new message from UDP socket
-        if plt_msg is not None:
+        plt_msg_list = self.UDP_conn_plot.recv_list() # Get new message from UDP socket
+        if plt_msg_list is not None and len(plt_msg_list) > 0:
             # Plot
             self.plotter.set_axes_limit()
-            self.plotter.plot_drone_and_lidar_pos(plt_msg["drone_pose_x"], plt_msg["drone_pose_y"], None)#plt_msg["lidar_world_frame"]))
+            self.plotter.plot_drone_and_lidar_pos(plt_msg_list, None)#plt_msg["lidar_world_frame"]))
 
         self.master.after(10, self.get_new_status_msg)
 

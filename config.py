@@ -8,7 +8,7 @@ class UDP_sender():
         
         if target == "GUI":
             # UDP connection to GUI
-            self.send_to_gui = True
+            self.send_to_gui = False
             self.udp_addr_gui = ("127.0.0.1", 5077)
             try:
                 print("Init communication with external GUI")
@@ -46,12 +46,12 @@ class Config():
         # self.goal_pos = Point(-1170, -522,-100)
         
         #down - > up
-        # self.start_pos = Point(-414, -860,-100)
-        # self.goal_pos = Point(-402, -727, -100)
+        self.start_pos = Point(-1039, -900,-100)
+        self.goal_pos = Point(-454, -400, -100)
         
         # left-> right
-        self.start_pos = Point(-375,-880,-100)
-        self.goal_pos = Point(-367,-682,-100)
+        #self.start_pos = Point(-375,-880,-100)
+        #self.goal_pos = Point(-367,-682,-100)
         self.max_distance_to_goal = 3  # [Meters] Drone stops when reaches max distance to goal
         self.speed = 4
 

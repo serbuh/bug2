@@ -207,10 +207,18 @@ class bug2():
 
         # Wall follow reduce range sharply
         elif self.state == bug2_state.WALL_FOLLOW_SHARP_REDUCE_RANGE:
-            if self.obstacles.sectors[obst_direction.RIGHT].get_range() < obst_range.FAR:
+            if self.obstacles.sectors[obst_direction.RIGHT].get_range() == obst_range.NEAR:
                 self.correct_desired_azimuth_and_fly(0) # Stay on course
+                self.change_state(bug2_state.WALL_FOLLOW_INCREASE_RANGE) # come back to hold range state
+
+            elif self.obstacles.sectors[obst_direction.RIGHT].get_range() == obst_range.MIDDLE:
+                self.correct_desired_azimuth_and_fly(-self.config.correction_return_to_obst) # Correct the course back. You are on perfect range.
                 self.change_state(bug2_state.WALL_FOLLOW_HOLD_RANGE) # come back to hold range state
             
+            elif self.obstacles.sectors[obst_direction.RIGHT].get_range() == obst_range.FAR:
+                self.correct_desired_azimuth_and_fly(0) # Stay on course
+                self.change_state(bug2_state.WALL_FOLLOW_REDUCE_RANGE) # come back to hold range state
+
             elif now - self.last_nonzero_correction_time > self.config.reduce_range_timeout:
                 self.change_state(bug2_state.GO_TO_POINT) # Stop trying to return to the obstacle
             

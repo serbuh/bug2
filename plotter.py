@@ -42,10 +42,13 @@ class Plotter:
         self.fig.tight_layout(pad=1.08, h_pad=None, w_pad=None, rect=None)
 
     
-    def plot_drone_and_lidar_pos(self, drone_pose_x, drone_pose_y, lidar_world_frame):
-        if lidar_world_frame is not None:
-            self.ax_lidar.plot((lidar_world_frame[0]),(lidar_world_frame[1]), 'o', color='red')
-        self.ax_drone.plot((drone_pose_x),(drone_pose_y), 'o', color=self.next_color())
+    def plot_drone_and_lidar_pos(self, plt_msg_list, lidar_world_frame):
+        for plt_msg in plt_msg_list:
+            drone_pose_x, drone_pose_y = plt_msg["drone_pose_x"], plt_msg["drone_pose_y"]
+            if lidar_world_frame is not None:
+                self.ax_lidar.plot((lidar_world_frame[0]),(lidar_world_frame[1]), 'o', color='red')
+            self.ax_drone.plot((drone_pose_x),(drone_pose_y), 'o', color=self.next_color())
+        
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
         #self.ax_drone.clear()

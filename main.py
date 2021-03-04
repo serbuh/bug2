@@ -45,7 +45,7 @@ if __name__ == "__main__":
         # Send to plot: drone_pose, lidar_world_frame
         if udp_sender_plotter.send_to_plotter and not_sent_statuses_plot >= config.status_send_cycle_plotter:
             not_sent_statuses_plot = 0
-            msg = str.encode(json.dumps({"drone_pose_x": drone_pose.pos.x_m, "drone_pose_y": drone_pose.pos.y_m}))#, "lidar_world_frame": lidar_world_frame.tolist()}))
+            msg = str.encode(json.dumps({"drone_pose_x": drone_pose.pos.x_m, "drone_pose_y": drone_pose.pos.y_m, "lidar_world_frame": lidar_world_frame.tolist()}))
             udp_sender_plotter.udp_send_sock_plotter.sendto(msg, udp_sender_plotter.udp_addr_plotter)
         not_sent_statuses_plot += 1
         

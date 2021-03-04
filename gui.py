@@ -113,7 +113,7 @@ class MainWindow():
         if plt_msg_list is not None and len(plt_msg_list) > 0:
             # Plot
             self.plotter.set_axes_limit()
-            self.plotter.plot_drone_and_lidar_pos(plt_msg_list, None)#plt_msg["lidar_world_frame"]))
+            self.plotter.plot_drone_and_lidar_pos(plt_msg_list)
 
         self.master.after(10, self.get_new_status_msg)
 

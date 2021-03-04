@@ -15,7 +15,7 @@ class Plotter:
         self.ax_obstacle.invert_xaxis()
         self.ax_drone = self.ax_obstacle.twinx()
         self.ax_lidar= self.ax_obstacle.twinx() # relative to world axes
-        self.color_inc = 1/32
+        self.color_inc = 1/128
         self.r = 1
         self.g = 0
         self.b = 0
@@ -42,12 +42,12 @@ class Plotter:
         self.fig.tight_layout(pad=1.08, h_pad=None, w_pad=None, rect=None)
 
     
-    def plot_drone_and_lidar_pos(self, plt_msg_list, lidar_world_frame):
+    def plot_drone_and_lidar_pos(self, plt_msg_list):
         for plt_msg in plt_msg_list:
             drone_pose_x, drone_pose_y = plt_msg["drone_pose_x"], plt_msg["drone_pose_y"]
-            if lidar_world_frame is not None:
-                self.ax_lidar.plot((lidar_world_frame[0]),(lidar_world_frame[1]), 'o', color='red')
-            self.ax_drone.plot((drone_pose_x),(drone_pose_y), 'o', color=self.next_color())
+            if plt_msg["lidar_world_frame"] is not None:
+                self.ax_lidar.plot((plt_msg["lidar_world_frame"][0]),(plt_msg["lidar_world_frame"][1]), 'o', color='red', markersize=2)
+            self.ax_drone.plot((drone_pose_x),(drone_pose_y), 'o', color=self.next_color(), markersize=4)
         
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
